@@ -1,32 +1,29 @@
+using Microsoft.AspNetCore.Mvc;
 using SkyRoute.Application.UseCases.SearchFlights;
 using SkyRoute.Domain.Enums;
 
-namespace SkyRoute.Api.Endpoints;
+namespace SkyRoute.Api.Controllers;
 
-public static class SearchEndpoint
+[ApiController]
+[Route("api/flights")]
+public sealed class FlightsController(SearchFlightsUseCase searchFlights) : ControllerBase
 {
-    public static void MapSearchEndpoints(this WebApplication app)
-    {
-        app.MapGet("/api/flights/search", HandleAsync)
-            .WithName("SearchFlights");
-    }
-
-    private static async Task<IResult> HandleAsync(
-        string origin,
-        string destination,
-        DateOnly departureDate,
-        int passengers,
-        CabinClass cabin,
-        SearchFlightsUseCase useCase,
+    [HttpGet("search")]
+    public async Task<IActionResult> Search(
+        [FromQuery] string origin,
+        [FromQuery] string destination,
+        [FromQuery] DateOnly departureDate,
+        [FromQuery] int passengers,
+        [FromQuery] CabinClass cabin,
         CancellationToken ct)
     {
         if (passengers < 1 || passengers > 9)
-            return Results.BadRequest("Passengers must be between 1 and 9.");
+            return BadRequest("Passengers must be between 1 and 9.");
 
         var query = new SearchFlightsQuery(origin, destination, departureDate, passengers, cabin);
-        var result = await useCase.ExecuteAsync(query, ct);
+        var result = await searchFlights.ExecuteAsync(query, ct);
 
-        return Results.Ok(new
+        return Ok(new
         {
             offers = result.Offers.Select(o => new
             {
