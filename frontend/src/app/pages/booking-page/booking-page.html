@@ -1,0 +1,99 @@
+@if (!state.selectedOffer()) {
+  <div class="no-offer">
+    <p>No flight selected.</p>
+    <button class="btn-secondary" (click)="goBack()">Back to search</button>
+  </div>
+} @else {
+  <div class="page">
+    <header class="header">
+      <div class="header-inner">
+        <button class="btn-back" (click)="goBack()">← Back</button>
+        <div class="logo">
+          <span class="logo-icon">✈</span>
+          <span class="logo-text">SkyRoute</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <h1 class="page-title">Complete your booking</h1>
+
+      <!-- Flight summary -->
+      <section class="card summary-card">
+        <h2 class="card-title">Flight details</h2>
+        <div class="summary-row">
+          <div class="summary-route">
+            <span class="iata">{{ state.selectedOffer()!.origin }}</span>
+            <span class="arrow">→</span>
+            <span class="iata">{{ state.selectedOffer()!.destination }}</span>
+          </div>
+          <span class="route-type">{{ isInternational() ? 'International' : 'Domestic' }}</span>
+        </div>
+        <div class="summary-details">
+          <div class="detail">
+            <span class="detail-label">Provider</span>
+            <span>{{ state.selectedOffer()!.provider }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Flight</span>
+            <span>{{ state.selectedOffer()!.flightNumber }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Cabin</span>
+            <span>{{ state.selectedOffer()!.cabin }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Departure</span>
+            <span>{{ state.selectedOffer()!.departureUtc | date:'d MMM yyyy, HH:mm' : 'UTC' }} UTC</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Passengers</span>
+            <span>{{ state.selectedOffer()!.passengers }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Total</span>
+            <span class="price">{{ state.selectedOffer()!.totalPrice | currency:'USD' }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Passenger form -->
+      <section class="card form-card">
+        <h2 class="card-title">Passenger details</h2>
+        <form [formGroup]="form" (ngSubmit)="confirm()" class="booking-form">
+          <div class="field">
+            <label for="name">Full name</label>
+            <input id="name" type="text" formControlName="passengerName"
+              placeholder="As it appears on your document" />
+            @if (form.controls.passengerName.invalid && form.controls.passengerName.touched) {
+              <span class="field-error">Please enter the passenger's full name.</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="docNumber">{{ documentLabel() }} number</label>
+            <input id="docNumber" type="text" formControlName="documentNumber"
+              [placeholder]="isInternational() ? 'e.g. P-123456' : 'e.g. ID-987654'" />
+            <span class="field-hint">
+              {{ isInternational()
+                  ? 'International route — Passport required'
+                  : 'Domestic route — National ID accepted' }}
+            </span>
+            @if (form.controls.documentNumber.invalid && form.controls.documentNumber.touched) {
+              <span class="field-error">Please enter the document number.</span>
+            }
+          </div>
+
+          @if (submitError) {
+            <div class="submit-error">{{ submitError }}</div>
+          }
+
+          <button type="submit" class="btn-confirm"
+            [disabled]="form.invalid || submitting">
+            {{ submitting ? 'Confirming…' : 'Confirm booking' }}
+          </button>
+        </form>
+      </section>
+    </main>
+  </div>
+}
