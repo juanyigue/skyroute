@@ -12,7 +12,7 @@ public sealed class BudgetWingsProvider(IOptions<BudgetWingsOptions> options) : 
 
     public string ProviderName => "BudgetWings";
 
-    public Task<IReadOnlyList<FlightOffer>> SearchAsync(
+    public async Task<IReadOnlyList<FlightOffer>> SearchAsync(
         string origin,
         string destination,
         DateOnly departureDate,
@@ -20,6 +20,9 @@ public sealed class BudgetWingsProvider(IOptions<BudgetWingsOptions> options) : 
         CabinClass cabin,
         CancellationToken ct = default)
     {
+        if (options.Value.SimulateDelaySeconds > 0)
+            await Task.Delay(TimeSpan.FromSeconds(options.Value.SimulateDelaySeconds), ct);
+
         if (options.Value.SimulateFailure)
             throw new InvalidOperationException("BudgetWings service is temporarily unavailable.");
 
@@ -48,7 +51,7 @@ public sealed class BudgetWingsProvider(IOptions<BudgetWingsOptions> options) : 
             }
         ];
 
-        return Task.FromResult(offers);
+        return offers;
     }
 
     private static decimal GenerateBasePrice(string origin, string destination)

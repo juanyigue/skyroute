@@ -20,6 +20,10 @@ public static class DependencyInjection
 
         services.Configure<BudgetWingsOptions>(configuration.GetSection("BudgetWings"));
 
+        // Pipeline order (outermost → innermost):
+        //   Retry → CircuitBreaker → Timeout
+        // Each attempt gets its own 5s timeout. TimeoutRejectedException propagates
+        // to Retry (handled), and each failed attempt counts against the CircuitBreaker.
         services.AddSingleton(BuildProviderPipeline());
 
         services.AddScoped<GlobalAirProvider>();
@@ -36,16 +40,13 @@ public static class DependencyInjection
 
     private static ResiliencePipeline BuildProviderPipeline() =>
         new ResiliencePipelineBuilder()
-            .AddTimeout(new TimeoutStrategyOptions
-            {
-                Timeout = TimeSpan.FromSeconds(10)
-            })
             .AddRetry(new RetryStrategyOptions
             {
                 MaxRetryAttempts = 2,
                 Delay = TimeSpan.FromMilliseconds(200),
-                // Only retry transient errors, not business failures like SimulateFailure
-                ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>().Handle<TimeoutRejectedException>()
+                ShouldHandle = new PredicateBuilder()
+                    .Handle<HttpRequestException>()
+                    .Handle<TimeoutRejectedException>()
             })
             .AddCircuitBreaker(new CircuitBreakerStrategyOptions
             {
@@ -53,6 +54,10 @@ public static class DependencyInjection
                 MinimumThroughput = 5,
                 SamplingDuration = TimeSpan.FromSeconds(30),
                 BreakDuration = TimeSpan.FromSeconds(30)
+            })
+            .AddTimeout(new TimeoutStrategyOptions
+            {
+                Timeout = TimeSpan.FromSeconds(5)
             })
             .Build();
 }
