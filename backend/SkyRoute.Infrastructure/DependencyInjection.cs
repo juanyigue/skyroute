@@ -5,6 +5,7 @@ using Polly.CircuitBreaker;
 using Polly.Retry;
 using Polly.Timeout;
 using SkyRoute.Application.Interfaces;
+using SkyRoute.Application.UseCases.CreateBooking;
 using SkyRoute.Application.UseCases.SearchFlights;
 using SkyRoute.Infrastructure.Persistence;
 using SkyRoute.Infrastructure.Providers;
@@ -17,6 +18,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IAirportRepository, InMemoryAirportRepository>();
+        services.AddSingleton<IBookingRepository, InMemoryBookingRepository>();
 
         services.Configure<BudgetWingsOptions>(configuration.GetSection("BudgetWings"));
 
@@ -35,6 +37,8 @@ public static class DependencyInjection
             new ResilientFlightProvider(sp.GetRequiredService<BudgetWingsProvider>(), sp.GetRequiredService<ResiliencePipeline>()));
 
         services.AddScoped<SearchFlightsUseCase>();
+        services.AddScoped<CreateBookingUseCase>();
+
         return services;
     }
 
