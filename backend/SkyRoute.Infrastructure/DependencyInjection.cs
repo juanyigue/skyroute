@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -7,6 +8,7 @@ using Polly.Timeout;
 using SkyRoute.Application.Interfaces;
 using SkyRoute.Application.UseCases.CreateBooking;
 using SkyRoute.Application.UseCases.SearchFlights;
+using SkyRoute.Infrastructure.AI;
 using SkyRoute.Infrastructure.Persistence;
 using SkyRoute.Infrastructure.Providers;
 using SkyRoute.Infrastructure.Resilience;
@@ -38,6 +40,24 @@ public static class DependencyInjection
 
         services.AddScoped<SearchFlightsUseCase>();
         services.AddScoped<CreateBookingUseCase>();
+
+        // AI assistant — provider selected via AI:Provider config key (defaults to rule-based)
+        services.Configure<LlmOptions>(configuration.GetSection("AI:Llm"));
+        services.AddHttpClient<LlmAiAssistant>();
+        services.AddScoped<RuleBasedAiAssistant>();
+        services.AddScoped<LlmAiAssistant>();
+        services.AddScoped<IAiAssistant>(sp =>
+        {
+            var provider = configuration["AI:Provider"] ?? "rule-based";
+            if (provider.Equals("llm", StringComparison.OrdinalIgnoreCase))
+                return sp.GetRequiredService<LlmAiAssistant>();
+            if (provider.Equals("fallback", StringComparison.OrdinalIgnoreCase))
+                return new FallbackAiAssistant(
+                    sp.GetRequiredService<LlmAiAssistant>(),      // primary
+                    sp.GetRequiredService<RuleBasedAiAssistant>(), // fallback
+                    sp.GetRequiredService<ILogger<FallbackAiAssistant>>());
+            return sp.GetRequiredService<RuleBasedAiAssistant>();
+        });
 
         return services;
     }
