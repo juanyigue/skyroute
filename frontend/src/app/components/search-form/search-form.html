@@ -1,0 +1,46 @@
+<form [formGroup]="form" (ngSubmit)="search()" class="search-form">
+  <div class="form-fields">
+    <div class="field">
+      <label for="origin">From</label>
+      <select id="origin" formControlName="origin">
+        <option value="">Select origin</option>
+        @for (a of airports; track a.code) {
+          <option [value]="a.code">{{ a.code }} — {{ a.city }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="destination">To</label>
+      <select id="destination" formControlName="destination">
+        <option value="">Select destination</option>
+        @for (a of airports; track a.code) {
+          <option [value]="a.code">{{ a.code }} — {{ a.city }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="date">Date</label>
+      <input id="date" type="date" formControlName="departureDate" />
+    </div>
+
+    <div class="field field--sm">
+      <label for="passengers">Passengers</label>
+      <input id="passengers" type="number" formControlName="passengers" min="1" max="9" />
+    </div>
+
+    <div class="field field--sm">
+      <label for="cabin">Cabin</label>
+      <select id="cabin" formControlName="cabin">
+        <option value="Economy">Economy</option>
+        <option value="Business">Business</option>
+        <option value="First">First</option>
+      </select>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-search" [disabled]="form.invalid || state.isLoading()">
+    {{ state.isLoading() ? 'Searching…' : 'Search Flights' }}
+  </button>
+</form>

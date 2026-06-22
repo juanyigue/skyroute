@@ -1,0 +1,34 @@
+<div class="page">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">✈</span>
+        <span class="logo-text">SkyRoute</span>
+      </div>
+      <p class="tagline">Search flights from multiple providers</p>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="search-card">
+      <app-search-form />
+    </section>
+
+    @if (state.searchError()) {
+      <div class="global-error">{{ state.searchError() }}</div>
+    }
+
+    @if (state.isLoading()) {
+      <div class="loading">
+        <span class="spinner"></span>
+        Searching across providers…
+      </div>
+    }
+
+    @if (state.searchResults() && !state.isLoading()) {
+      <section class="results-section">
+        <app-results-list />
+      </section>
+    }
+  </main>
+</div>

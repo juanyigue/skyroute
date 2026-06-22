@@ -1,0 +1,55 @@
+<div class="results">
+  <div class="results-header">
+    <span class="results-count">
+      {{ state.sortedOffers().length }}
+      {{ state.sortedOffers().length === 1 ? 'flight' : 'flights' }} found
+    </span>
+    <button class="btn-sort" (click)="state.toggleSort()">
+      Price
+      <span class="sort-icon">{{ state.sortOrder() === 'asc' ? '↑' : '↓' }}</span>
+    </button>
+  </div>
+
+  @if (state.searchResults()?.errors?.length) {
+    <div class="provider-errors">
+      @for (err of state.searchResults()!.errors; track err) {
+        <p class="provider-error">⚠ {{ err }}</p>
+      }
+    </div>
+  }
+
+  @if (state.sortedOffers().length === 0) {
+    <div class="no-results">No flights found for this route and date.</div>
+  }
+
+  @for (offer of state.sortedOffers(); track offer.flightNumber + offer.provider) {
+    <div class="offer-card">
+      <div class="offer-left">
+        <div class="offer-route">
+          <span class="iata">{{ offer.origin }}</span>
+          <div class="route-line">
+            <span class="duration">{{ durationMinutes(offer.departureUtc, offer.arrivalUtc) }}</span>
+            <div class="line"></div>
+            <span class="flight-no">{{ offer.flightNumber }}</span>
+          </div>
+          <span class="iata">{{ offer.destination }}</span>
+        </div>
+        <div class="offer-times">
+          <span>{{ offer.departureUtc | date:'HH:mm' : 'UTC' }}</span>
+          <span>{{ offer.arrivalUtc | date:'HH:mm' : 'UTC' }}</span>
+        </div>
+      </div>
+
+      <div class="offer-meta">
+        <span class="provider">{{ offer.provider }}</span>
+        <span class="cabin">{{ offer.cabin }}</span>
+        <span class="pax">{{ offer.passengers }} pax</span>
+      </div>
+
+      <div class="offer-right">
+        <div class="offer-price">{{ offer.totalPrice | currency:'USD' }}</div>
+        <button class="btn-book" (click)="book(offer)">Book</button>
+      </div>
+    </div>
+  }
+</div>
