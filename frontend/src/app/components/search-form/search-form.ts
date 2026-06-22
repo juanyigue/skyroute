@@ -1,12 +1,12 @@
-import { Component, inject } from '@angular/core';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { Component, inject, signal } from '@angular/core';
+import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ApiService } from '../../services/api.service';
 import { StateService } from '../../services/state.service';
 import { AIRPORTS } from '../../models/flight.model';
 
 @Component({
   selector: 'app-search-form',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, FormsModule],
   templateUrl: './search-form.html',
   styleUrl: './search-form.scss',
 })
@@ -16,6 +16,10 @@ export class SearchFormComponent {
   protected readonly state = inject(StateService);
 
   protected readonly airports = AIRPORTS;
+  protected aiText = '';
+  protected readonly isParsing = signal(false);
+  protected readonly parseError = signal<string | null>(null);
+  protected readonly parseFilled = signal(false);
 
   protected readonly form = this.fb.group({
     origin: ['', Validators.required],
@@ -24,6 +28,31 @@ export class SearchFormComponent {
     passengers: [1, [Validators.required, Validators.min(1), Validators.max(9)]],
     cabin: ['Economy', Validators.required],
   });
+
+  protected autofill(): void {
+    const text = this.aiText.trim();
+    if (!text) return;
+    this.isParsing.set(true);
+    this.parseError.set(null);
+    this.parseFilled.set(false);
+    this.api.parseSearch(text).subscribe({
+      next: parsed => {
+        this.fill(
+          parsed.origin ?? '',
+          parsed.destination ?? '',
+          parsed.departureDate ?? '',
+          parsed.passengers ?? 1,
+          parsed.cabin ?? 'Economy',
+        );
+        this.parseFilled.set(true);
+        this.isParsing.set(false);
+      },
+      error: () => {
+        this.parseError.set('Could not parse — fill the fields manually.');
+        this.isParsing.set(false);
+      },
+    });
+  }
 
   protected search(): void {
     if (this.form.invalid) return;

@@ -1,3 +1,32 @@
+<div class="ai-row">
+  <div class="ai-input-wrap">
+    <input
+      class="ai-input"
+      type="text"
+      placeholder="e.g. JFK to London next Friday, 2 passengers, business"
+      [(ngModel)]="aiText"
+      [ngModelOptions]="{standalone: true}"
+      (keydown.enter)="autofill()"
+      [disabled]="isParsing()"
+      aria-label="Describe your trip in natural language"
+    />
+    <button
+      type="button"
+      class="btn-autofill"
+      (click)="autofill()"
+      [disabled]="!aiText.trim() || isParsing()"
+    >
+      {{ isParsing() ? 'Parsing…' : 'Auto-fill' }}
+    </button>
+  </div>
+  @if (parseFilled()) {
+    <span class="ai-hint ai-hint--ok">Form filled — review and adjust if needed.</span>
+  }
+  @if (parseError()) {
+    <span class="ai-hint ai-hint--err">{{ parseError() }}</span>
+  }
+</div>
+
 <form [formGroup]="form" (ngSubmit)="search()" class="search-form">
   <div class="form-fields">
     <div class="field">
