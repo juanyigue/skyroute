@@ -1,13 +1,13 @@
 using SkyRoute.Domain.Enums;
+using SkyRoute.Domain.ValueObjects;
 
 namespace SkyRoute.Domain.Entities;
 
 public sealed class Booking
 {
     public Guid Id { get; init; } = Guid.NewGuid();
-    public string PassengerName { get; init; } = default!;
+    public IReadOnlyList<PassengerInfo> PassengerDetails { get; init; } = [];
     public DocumentType DocumentType { get; init; }
-    public string DocumentNumber { get; init; } = default!;
     public string Provider { get; init; } = default!;
     public string FlightNumber { get; init; } = default!;
     public string Origin { get; init; } = default!;
@@ -15,7 +15,6 @@ public sealed class Booking
     public DateTimeOffset DepartureUtc { get; init; }
     public DateTimeOffset ArrivalUtc { get; init; }
     public CabinClass Cabin { get; init; }
-    public int Passengers { get; init; }
     public decimal TotalPrice { get; init; }
     public string Currency { get; init; } = "USD";
     public DateTimeOffset BookedAt { get; init; } = DateTimeOffset.UtcNow;

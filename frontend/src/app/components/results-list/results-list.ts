@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
-import { StateService } from '../../services/state.service';
+import { StateService, SortKey } from '../../services/state.service';
 import { FlightOffer } from '../../models/flight.model';
 
 @Component({
@@ -17,6 +17,11 @@ export class ResultsListComponent {
   protected book(offer: FlightOffer): void {
     this.state.selectOffer(offer);
     this.router.navigate(['/book']);
+  }
+
+  protected onSortChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as SortKey;
+    this.state.setSortOrder(value);
   }
 
   protected durationMinutes(departure: string, arrival: string): string {

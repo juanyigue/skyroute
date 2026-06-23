@@ -10,6 +10,9 @@ public sealed class CreateBookingUseCase(
 {
     public Booking Execute(CreateBookingCommand command)
     {
+        if (command.Passengers.Count == 0)
+            throw new ArgumentException("At least one passenger is required.");
+
         var origin = airports.FindByCode(command.Origin)
             ?? throw new ArgumentException($"Unknown airport: {command.Origin}");
         var destination = airports.FindByCode(command.Destination)
@@ -22,9 +25,8 @@ public sealed class CreateBookingUseCase(
 
         var booking = new Booking
         {
-            PassengerName = command.PassengerName,
+            PassengerDetails = command.Passengers,
             DocumentType = command.DocumentType,
-            DocumentNumber = command.DocumentNumber,
             Provider = command.Provider,
             FlightNumber = command.FlightNumber,
             Origin = command.Origin,
@@ -32,7 +34,6 @@ public sealed class CreateBookingUseCase(
             DepartureUtc = command.DepartureUtc,
             ArrivalUtc = command.ArrivalUtc,
             Cabin = command.Cabin,
-            Passengers = command.Passengers,
             TotalPrice = command.TotalPrice
         };
 

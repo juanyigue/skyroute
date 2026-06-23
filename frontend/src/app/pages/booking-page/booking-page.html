@@ -19,8 +19,8 @@
       <h1 class="page-title">Complete your booking</h1>
 
       <!-- Flight summary -->
-      <section class="card summary-card">
-        <h2 class="card-title">Flight details</h2>
+      <section class="card">
+        <h2 class="card-title">Flight summary</h2>
         <div class="summary-row">
           <div class="summary-route">
             <span class="iata">{{ state.selectedOffer()!.origin }}</span>
@@ -31,69 +31,87 @@
         </div>
         <div class="summary-details">
           <div class="detail">
-            <span class="detail-label">Provider</span>
-            <span>{{ state.selectedOffer()!.provider }}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Flight</span>
-            <span>{{ state.selectedOffer()!.flightNumber }}</span>
+            <span class="detail-label">Departure</span>
+            {{ state.selectedOffer()!.departureUtc | date:'d MMM yyyy, HH:mm' : 'UTC' }} UTC
           </div>
           <div class="detail">
             <span class="detail-label">Cabin</span>
-            <span>{{ state.selectedOffer()!.cabin }}</span>
+            {{ state.selectedOffer()!.cabin }}
           </div>
           <div class="detail">
-            <span class="detail-label">Departure</span>
-            <span>{{ state.selectedOffer()!.departureUtc | date:'d MMM yyyy, HH:mm' : 'UTC' }} UTC</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Passengers</span>
-            <span>{{ state.selectedOffer()!.passengers }}</span>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Total</span>
+            <span class="detail-label">Total price</span>
             <span class="price">{{ state.selectedOffer()!.totalPrice | currency:'USD' }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Flight</span>
+            {{ state.selectedOffer()!.flightNumber }}
+          </div>
+          <div class="detail">
+            <span class="detail-label">Provider</span>
+            {{ state.selectedOffer()!.provider }}
+          </div>
+          <div class="detail">
+            <span class="detail-label">Document required</span>
+            {{ documentLabel() }}
           </div>
         </div>
       </section>
 
-      <!-- Passenger form -->
-      <section class="card form-card">
-        <h2 class="card-title">Passenger details</h2>
-        <form [formGroup]="form" (ngSubmit)="confirm()" class="booking-form">
-          <div class="field">
-            <label for="name">Full name</label>
-            <input id="name" type="text" formControlName="passengerName"
-              placeholder="As it appears on your document" />
-            @if (form.controls.passengerName.invalid && form.controls.passengerName.touched) {
-              <span class="field-error">Please enter the passenger's full name.</span>
-            }
-          </div>
+      <!-- Per-passenger forms -->
+      <form [formGroup]="form" (ngSubmit)="confirm()" class="booking-form">
+        <ng-container formArrayName="passengers">
+          @for (group of passengerGroups; track $index) {
+            <section class="card passenger-card" [formGroupName]="$index">
+              <h2 class="card-title">
+                Passenger {{ $index + 1 }}
+                @if (passengerGroups.length > 1) {
+                  <span class="pax-count">of {{ passengerGroups.length }}</span>
+                }
+              </h2>
 
-          <div class="field">
-            <label for="docNumber">{{ documentLabel() }} number</label>
-            <input id="docNumber" type="text" formControlName="documentNumber"
-              [placeholder]="isInternational() ? 'e.g. P-123456' : 'e.g. ID-987654'" />
-            <span class="field-hint">
-              {{ isInternational()
-                  ? 'International route — Passport required'
-                  : 'Domestic route — National ID accepted' }}
-            </span>
-            @if (form.controls.documentNumber.invalid && form.controls.documentNumber.touched) {
-              <span class="field-error">Please enter the document number.</span>
-            }
-          </div>
+              <div class="passenger-fields">
+                <div class="field">
+                  <label [for]="'name-' + $index">Full name</label>
+                  <input [id]="'name-' + $index" type="text" formControlName="name"
+                    placeholder="As on travel document" />
+                  @if (ctrl($index, 'name')?.invalid && ctrl($index, 'name')?.touched) {
+                    <span class="field-error">Full name is required (min 2 characters)</span>
+                  }
+                </div>
 
-          @if (submitError) {
-            <div class="submit-error">{{ submitError }}</div>
+                <div class="field">
+                  <label [for]="'email-' + $index">Email address</label>
+                  <input [id]="'email-' + $index" type="email" formControlName="email"
+                    placeholder="passenger@example.com" />
+                  @if (ctrl($index, 'email')?.invalid && ctrl($index, 'email')?.touched) {
+                    <span class="field-error">A valid email address is required</span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label [for]="'doc-' + $index">{{ documentLabel() }} number</label>
+                  <input [id]="'doc-' + $index" type="text" formControlName="documentNumber"
+                    [placeholder]="isInternational() ? 'e.g. P12345678' : 'e.g. ID-987654'" />
+                  <span class="field-hint">
+                    {{ isInternational() ? 'International route — passport required' : 'Domestic route — national ID accepted' }}
+                  </span>
+                  @if (ctrl($index, 'documentNumber')?.invalid && ctrl($index, 'documentNumber')?.touched) {
+                    <span class="field-error">Document number is required</span>
+                  }
+                </div>
+              </div>
+            </section>
           }
+        </ng-container>
 
-          <button type="submit" class="btn-confirm"
-            [disabled]="form.invalid || submitting">
-            {{ submitting ? 'Confirming…' : 'Confirm booking' }}
-          </button>
-        </form>
-      </section>
+        @if (submitError) {
+          <div class="submit-error">{{ submitError }}</div>
+        }
+
+        <button type="submit" class="btn-confirm" [disabled]="submitting">
+          {{ submitting ? 'Confirming…' : 'Confirm booking' }}
+        </button>
+      </form>
     </main>
   </div>
 }

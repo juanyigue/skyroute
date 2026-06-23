@@ -4,10 +4,17 @@
       {{ state.sortedOffers().length }}
       {{ state.sortedOffers().length === 1 ? 'flight' : 'flights' }} found
     </span>
-    <button class="btn-sort" (click)="state.toggleSort()">
-      Price
-      <span class="sort-icon">{{ state.sortOrder() === 'asc' ? '↑' : '↓' }}</span>
-    </button>
+    <div class="sort-wrap">
+      <label for="sort" class="sort-label">Sort by</label>
+      <select id="sort" class="sort-select" [value]="state.sortOrder()" (change)="onSortChange($event)">
+        <option value="price-asc">Price ↑</option>
+        <option value="price-desc">Price ↓</option>
+        <option value="departure-asc">Departure ↑</option>
+        <option value="departure-desc">Departure ↓</option>
+        <option value="duration-asc">Duration ↑</option>
+        <option value="duration-desc">Duration ↓</option>
+      </select>
+    </div>
   </div>
 
   @if (state.searchResults()?.errors?.length) {
@@ -48,6 +55,9 @@
 
       <div class="offer-right">
         <div class="offer-price">{{ offer.totalPrice | currency:'USD' }}</div>
+        @if (offer.passengers > 1) {
+          <div class="offer-price-pax">{{ offer.totalPrice / offer.passengers | currency:'USD' }} / pax</div>
+        }
         <button class="btn-book" (click)="book(offer)">Book</button>
       </div>
     </div>

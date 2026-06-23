@@ -149,6 +149,26 @@
   color: var(--primary);
 }
 
+.passenger-card {
+  .card-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .pax-count {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+}
+
+.passenger-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 // Booking form
 .booking-form {
   display: flex;

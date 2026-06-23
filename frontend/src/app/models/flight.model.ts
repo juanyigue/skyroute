@@ -34,10 +34,15 @@ export interface ParsedSearchQuery {
   cabin: string | null;
 }
 
-export interface CreateBookingRequest {
-  passengerName: string;
-  documentType: number;
+export interface PassengerDetail {
+  name: string;
+  email: string;
   documentNumber: string;
+}
+
+export interface CreateBookingRequest {
+  passengers: PassengerDetail[];
+  documentType: number;
   provider: string;
   flightNumber: string;
   origin: string;
@@ -45,15 +50,13 @@ export interface CreateBookingRequest {
   departureUtc: string;
   arrivalUtc: string;
   cabin: number;
-  passengers: number;
   totalPrice: number;
 }
 
 export interface BookingResponse {
   id: string;
-  passengerName: string;
+  passengers: PassengerDetail[];
   documentType: string;
-  documentNumber: string;
   provider: string;
   flightNumber: string;
   origin: string;
@@ -61,7 +64,7 @@ export interface BookingResponse {
   departureUtc: string;
   arrivalUtc: string;
   cabin: string;
-  passengers: number;
+  passengerCount: number;
   totalPrice: number;
   currency: string;
   bookedAt: string;

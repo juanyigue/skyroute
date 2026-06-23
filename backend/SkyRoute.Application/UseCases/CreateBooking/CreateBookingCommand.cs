@@ -1,11 +1,11 @@
 using SkyRoute.Domain.Enums;
+using SkyRoute.Domain.ValueObjects;
 
 namespace SkyRoute.Application.UseCases.CreateBooking;
 
 public sealed record CreateBookingCommand(
-    string PassengerName,
+    IReadOnlyList<PassengerInfo> Passengers,
     DocumentType DocumentType,
-    string DocumentNumber,
     string Provider,
     string FlightNumber,
     string Origin,
@@ -13,5 +13,4 @@ public sealed record CreateBookingCommand(
     DateTimeOffset DepartureUtc,
     DateTimeOffset ArrivalUtc,
     CabinClass Cabin,
-    int Passengers,
     decimal TotalPrice);

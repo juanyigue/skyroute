@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using SkyRoute.Application.Interfaces;
 using SkyRoute.Application.UseCases.CreateBooking;
 using SkyRoute.Domain.Enums;
+using SkyRoute.Domain.ValueObjects;
 
 namespace SkyRoute.Api.Controllers;
 
@@ -17,9 +18,8 @@ public sealed class BookingsController(
         try
         {
             var command = new CreateBookingCommand(
-                request.PassengerName,
+                request.Passengers.Select(p => new PassengerInfo(p.Name, p.Email, p.DocumentNumber)).ToList(),
                 request.DocumentType,
-                request.DocumentNumber,
                 request.Provider,
                 request.FlightNumber,
                 request.Origin,
@@ -27,29 +27,10 @@ public sealed class BookingsController(
                 request.DepartureUtc,
                 request.ArrivalUtc,
                 request.Cabin,
-                request.Passengers,
                 request.TotalPrice);
 
             var booking = createBooking.Execute(command);
-
-            return CreatedAtAction(nameof(Get), new { id = booking.Id }, new
-            {
-                booking.Id,
-                booking.PassengerName,
-                DocumentType = booking.DocumentType.ToString(),
-                booking.DocumentNumber,
-                booking.Provider,
-                booking.FlightNumber,
-                booking.Origin,
-                booking.Destination,
-                booking.DepartureUtc,
-                booking.ArrivalUtc,
-                Cabin = booking.Cabin.ToString(),
-                booking.Passengers,
-                booking.TotalPrice,
-                booking.Currency,
-                booking.BookedAt
-            });
+            return CreatedAtAction(nameof(Get), new { id = booking.Id }, BookingToDto(booking));
         }
         catch (ArgumentException ex)
         {
@@ -62,32 +43,33 @@ public sealed class BookingsController(
     {
         var booking = bookings.FindById(id);
         if (booking is null) return NotFound();
-
-        return Ok(new
-        {
-            booking.Id,
-            booking.PassengerName,
-            DocumentType = booking.DocumentType.ToString(),
-            booking.DocumentNumber,
-            booking.Provider,
-            booking.FlightNumber,
-            booking.Origin,
-            booking.Destination,
-            booking.DepartureUtc,
-            booking.ArrivalUtc,
-            Cabin = booking.Cabin.ToString(),
-            booking.Passengers,
-            booking.TotalPrice,
-            booking.Currency,
-            booking.BookedAt
-        });
+        return Ok(BookingToDto(booking));
     }
+
+    private static object BookingToDto(Domain.Entities.Booking b) => new
+    {
+        b.Id,
+        Passengers = b.PassengerDetails.Select(p => new { p.Name, p.Email, p.DocumentNumber }),
+        DocumentType = b.DocumentType.ToString(),
+        b.Provider,
+        b.FlightNumber,
+        b.Origin,
+        b.Destination,
+        b.DepartureUtc,
+        b.ArrivalUtc,
+        Cabin = b.Cabin.ToString(),
+        PassengerCount = b.PassengerDetails.Count,
+        b.TotalPrice,
+        b.Currency,
+        b.BookedAt
+    };
 }
 
+public sealed record PassengerDto(string Name, string Email, string DocumentNumber);
+
 public sealed record CreateBookingRequest(
-    string PassengerName,
+    IReadOnlyList<PassengerDto> Passengers,
     DocumentType DocumentType,
-    string DocumentNumber,
     string Provider,
     string FlightNumber,
     string Origin,
@@ -95,5 +77,4 @@ public sealed record CreateBookingRequest(
     DateTimeOffset DepartureUtc,
     DateTimeOffset ArrivalUtc,
     CabinClass Cabin,
-    int Passengers,
     decimal TotalPrice);
