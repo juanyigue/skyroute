@@ -20,6 +20,7 @@ export class SearchFormComponent {
   protected readonly isParsing = signal(false);
   protected readonly parseError = signal<string | null>(null);
   protected readonly parseFilled = signal(false);
+  protected readonly filledFields = signal<Set<string>>(new Set());
 
   protected readonly form = this.fb.group({
     origin: ['', Validators.required],
@@ -37,6 +38,13 @@ export class SearchFormComponent {
     this.parseFilled.set(false);
     this.api.parseSearch(text).subscribe({
       next: parsed => {
+        const filled = new Set<string>();
+        if (parsed.origin) filled.add('origin');
+        if (parsed.destination) filled.add('destination');
+        if (parsed.departureDate) filled.add('departureDate');
+        if (parsed.passengers) filled.add('passengers');
+        if (parsed.cabin) filled.add('cabin');
+        this.filledFields.set(filled);
         this.fill(
           parsed.origin ?? '',
           parsed.destination ?? '',
@@ -56,6 +64,8 @@ export class SearchFormComponent {
 
   protected search(): void {
     if (this.form.invalid) return;
+    this.filledFields.set(new Set());
+    this.parseFilled.set(false);
     const { origin, destination, departureDate, passengers, cabin } = this.form.value;
     this.state.isLoading.set(true);
     this.state.searchError.set(null);

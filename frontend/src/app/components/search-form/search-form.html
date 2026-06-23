@@ -29,7 +29,7 @@
 
 <form [formGroup]="form" (ngSubmit)="search()" class="search-form">
   <div class="form-fields">
-    <div class="field">
+    <div class="field" [class.field--filled]="filledFields().has('origin')">
       <label for="origin">From</label>
       <select id="origin" formControlName="origin">
         <option value="">Select origin</option>
@@ -39,7 +39,7 @@
       </select>
     </div>
 
-    <div class="field">
+    <div class="field" [class.field--filled]="filledFields().has('destination')">
       <label for="destination">To</label>
       <select id="destination" formControlName="destination">
         <option value="">Select destination</option>
@@ -49,17 +49,17 @@
       </select>
     </div>
 
-    <div class="field">
+    <div class="field" [class.field--filled]="filledFields().has('departureDate')">
       <label for="date">Date</label>
       <input id="date" type="date" formControlName="departureDate" />
     </div>
 
-    <div class="field field--sm">
+    <div class="field field--sm" [class.field--filled]="filledFields().has('passengers')">
       <label for="passengers">Passengers</label>
       <input id="passengers" type="number" formControlName="passengers" min="1" max="9" />
     </div>
 
-    <div class="field field--sm">
+    <div class="field field--sm" [class.field--filled]="filledFields().has('cabin')">
       <label for="cabin">Cabin</label>
       <select id="cabin" formControlName="cabin">
         <option value="Economy">Economy</option>

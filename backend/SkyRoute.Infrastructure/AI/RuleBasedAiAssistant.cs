@@ -34,6 +34,12 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
         ["bogota"] = "BOG", ["bogotá"] = "BOG",
     };
 
+    private static readonly Dictionary<string, int> WordNumbers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["one"] = 1, ["two"] = 2, ["three"] = 3, ["four"] = 4, ["five"] = 5,
+        ["six"] = 6, ["seven"] = 7, ["eight"] = 8, ["nine"] = 9
+    };
+
     public Task<ParsedSearchQuery> ParseSearchAsync(string text, CancellationToken ct = default)
     {
         var airports = ExtractAirports(text);
@@ -47,32 +53,30 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
 
     private static List<string> ExtractAirports(string text)
     {
-        var results = new List<string>();
+        var candidates = new List<(int position, string iata)>();
 
-        // Try known IATA codes first (word-boundary match in uppercase)
+        // IATA codes — preserve their position in the text
         var upper = text.ToUpperInvariant();
         foreach (Match m in IataWordPattern().Matches(upper))
         {
-            if (KnownIataCodes.Contains(m.Value) && !results.Contains(m.Value))
-            {
-                results.Add(m.Value);
-                if (results.Count == 2) return results;
-            }
+            if (KnownIataCodes.Contains(m.Value))
+                candidates.Add((m.Index, m.Value));
         }
 
-        if (results.Count >= 2) return results;
-
-        // Supplement with city name lookup (longest names first to avoid "la" matching inside "los angeles")
-        foreach (var (city, iata) in CityToIata.OrderByDescending(kv => kv.Key.Length))
+        // City names — find position in original text to preserve order
+        foreach (var (city, iata) in CityToIata)
         {
-            if (text.Contains(city, StringComparison.OrdinalIgnoreCase) && !results.Contains(iata))
-            {
-                results.Add(iata);
-                if (results.Count == 2) break;
-            }
+            var idx = text.IndexOf(city, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0 && candidates.All(c => c.iata != iata))
+                candidates.Add((idx, iata));
         }
 
-        return results;
+        return candidates
+            .OrderBy(c => c.position)
+            .Select(c => c.iata)
+            .Distinct()
+            .Take(2)
+            .ToList();
     }
 
     private static DateOnly? ExtractDate(string text)
@@ -81,6 +85,27 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
         var iso = IsoDatePattern().Match(text);
         if (iso.Success && DateOnly.TryParse(iso.Value, out var d))
             return d;
+
+        // "next Saturday" or "next Saturday 27" or "this Friday"
+        var relDay = RelativeDayPattern().Match(text);
+        if (relDay.Success && Enum.TryParse<DayOfWeek>(relDay.Groups[1].Value, ignoreCase: true, out var targetDow))
+        {
+            var today = DateTime.UtcNow.Date;
+            var daysAhead = ((int)targetDow - (int)today.DayOfWeek + 7) % 7;
+            if (daysAhead == 0) daysAhead = 7;
+            var next = today.AddDays(daysAhead);
+
+            if (relDay.Groups[2].Success && int.TryParse(relDay.Groups[2].Value, out var dayNum))
+            {
+                // Advance in 7-day steps to find the weekday that falls on the given day number
+                for (var i = 0; i < 8; i++, next = next.AddDays(7))
+                    if (next.Day == dayNum)
+                        return DateOnly.FromDateTime(next);
+                return null;
+            }
+
+            return DateOnly.FromDateTime(next);
+        }
 
         // "August 15" or "Aug 15, 2026"
         var monthDay = MonthDayPattern().Match(text);
@@ -101,12 +126,20 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
     private static int? ExtractPassengers(string text)
     {
         var m = PassengerCountPattern().Match(text);
-        if (m.Success && int.TryParse(m.Groups[1].Value, out var n) && n is >= 1 and <= 9)
-            return n;
+        if (m.Success)
+        {
+            var val = m.Groups[1].Value;
+            var n = int.TryParse(val, out var num) ? num : WordNumbers.GetValueOrDefault(val, 0);
+            if (n is >= 1 and <= 9) return n;
+        }
 
         var forN = ForNPattern().Match(text);
-        if (forN.Success && int.TryParse(forN.Groups[1].Value, out n) && n is >= 1 and <= 9)
-            return n;
+        if (forN.Success)
+        {
+            var val = forN.Groups[1].Value;
+            var n = int.TryParse(val, out var num) ? num : WordNumbers.GetValueOrDefault(val, 0);
+            if (n is >= 1 and <= 9) return n;
+        }
 
         return null;
     }
@@ -125,13 +158,16 @@ public sealed partial class RuleBasedAiAssistant : IAiAssistant
     [GeneratedRegex(@"\b(\d{4}-\d{2}-\d{2})\b")]
     private static partial Regex IsoDatePattern();
 
+    [GeneratedRegex(@"\b(?:next|this)\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)(?:\s+(\d{1,2}))?\b", RegexOptions.IgnoreCase)]
+    private static partial Regex RelativeDayPattern();
+
     [GeneratedRegex(@"\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})(?:,?\s*(\d{4}))?", RegexOptions.IgnoreCase)]
     private static partial Regex MonthDayPattern();
 
-    [GeneratedRegex(@"\b(\d+)\s*(?:passenger|pax|person|people|adult)s?", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\b(one|two|three|four|five|six|seven|eight|nine|\d+)\s*(?:passenger|pax|person|people|adult)s?", RegexOptions.IgnoreCase)]
     private static partial Regex PassengerCountPattern();
 
-    [GeneratedRegex(@"\bfor\s+(\d+)\b", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\bfor\s+(one|two|three|four|five|six|seven|eight|nine|\d+)\b", RegexOptions.IgnoreCase)]
     private static partial Regex ForNPattern();
 
     [GeneratedRegex(@"\bfirst\s*class\b", RegexOptions.IgnoreCase)]

@@ -24,6 +24,22 @@ public sealed class RuleBasedAiAssistantTests
     }
 
     [Fact]
+    public async Task Parse_CityNames_PreservesTextOrder()
+    {
+        var result = await _sut.ParseSearchAsync("London to New York");
+        Assert.Equal("LHR", result.Origin);
+        Assert.Equal("JFK", result.Destination);
+    }
+
+    [Fact]
+    public async Task Parse_MixedCityAndIata_PreservesTextOrder()
+    {
+        var result = await _sut.ParseSearchAsync("London to JFK");
+        Assert.Equal("LHR", result.Origin);
+        Assert.Equal("JFK", result.Destination);
+    }
+
+    [Fact]
     public async Task Parse_IsoDate_ExtractsDepartureDate()
     {
         var result = await _sut.ParseSearchAsync("JFK LHR 2026-08-15");
@@ -38,6 +54,30 @@ public sealed class RuleBasedAiAssistantTests
     }
 
     [Fact]
+    public async Task Parse_NextWeekday_ReturnsUpcomingDate()
+    {
+        var result = await _sut.ParseSearchAsync("JFK to LHR next Saturday");
+        Assert.NotNull(result.DepartureDate);
+        Assert.Equal(DayOfWeek.Saturday, result.DepartureDate!.Value.DayOfWeek);
+        Assert.True(result.DepartureDate.Value > DateOnly.FromDateTime(DateTime.UtcNow));
+    }
+
+    [Fact]
+    public async Task Parse_NextWeekdayWithDayNumber_ReturnsMatchingDate()
+    {
+        // Find a Saturday in the next ~56 days and build the query
+        var today = DateTime.UtcNow.Date;
+        var daysAhead = ((int)DayOfWeek.Saturday - (int)today.DayOfWeek + 7) % 7;
+        if (daysAhead == 0) daysAhead = 7;
+        var nextSat = today.AddDays(daysAhead);
+
+        var result = await _sut.ParseSearchAsync($"JFK to LHR next Saturday {nextSat.Day}");
+        Assert.NotNull(result.DepartureDate);
+        Assert.Equal(DayOfWeek.Saturday, result.DepartureDate!.Value.DayOfWeek);
+        Assert.Equal(nextSat.Day, result.DepartureDate.Value.Day);
+    }
+
+    [Fact]
     public async Task Parse_PassengerKeyword_ExtractsPassengers()
     {
         var result = await _sut.ParseSearchAsync("JFK LHR 2 passengers economy");
@@ -49,6 +89,17 @@ public sealed class RuleBasedAiAssistantTests
     {
         var result = await _sut.ParseSearchAsync("flight from JFK to LHR for 3");
         Assert.Equal(3, result.Passengers);
+    }
+
+    [Theory]
+    [InlineData("two passengers", 2)]
+    [InlineData("three people", 3)]
+    [InlineData("for four", 4)]
+    [InlineData("five adults", 5)]
+    public async Task Parse_WordNumberPassengers_ExtractsPassengers(string passengerText, int expected)
+    {
+        var result = await _sut.ParseSearchAsync($"JFK LHR {passengerText}");
+        Assert.Equal(expected, result.Passengers);
     }
 
     [Theory]
