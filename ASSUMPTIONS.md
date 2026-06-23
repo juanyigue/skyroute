@@ -64,3 +64,38 @@ Decisions made during the build that were not explicitly specified in the brief.
 
 **Assumption:** `FallbackAiAssistant` catches `Exception` (not a specific subset) when the LLM call fails.  
 **Reason:** The LLM path can fail in multiple ways — network errors, 401 Unauthorized (bad/missing API key), 429 rate-limit, malformed JSON response. Catching all exceptions ensures the rule-based fallback always activates, which is the correct behaviour for a demo where the API key may not be configured.
+
+---
+
+## HTTPS redirection disabled in Development; CORS allowed for localhost:4200
+
+**Assumption:** `UseHttpsRedirection()` is skipped in the Development environment, and a CORS policy permitting `http://localhost:4200` is applied only in Development.  
+**Reason:** The Angular dev server proxies `/api` to the backend over plain HTTP. Redirecting to HTTPS would break the proxy with a 307, and without a CORS policy the browser would block cross-origin requests. Neither concern applies in production, where the frontend is served from the same origin.
+
+---
+
+## Flight result sorting is client-side only
+
+**Assumption:** Sorting by price, departure time, or duration is performed in the browser via a `computed()` signal in `StateService`. No additional API call is made when the sort order changes.  
+**Reason:** All offers for a given search are already in memory. Re-querying the backend on every sort change would add latency for no benefit and require the API to support sort parameters. Client-side sort is instant and keeps the API surface simple.
+
+---
+
+## Document type applies at booking level, not per passenger
+
+**Assumption:** A single `DocumentType` (Passport or National ID) is determined by the route (origin/destination country) and applies to all passengers on the booking.  
+**Reason:** All passengers on the same flight share the same origin and destination, so the domestic/international rule produces the same result for every passenger. Validating per-passenger document type would be redundant and would require the backend to receive the document type once per passenger, not once per booking.
+
+---
+
+## Passenger details collected: name, email, and document number only
+
+**Assumption:** Each passenger requires a full name, email address, and document number. Fields such as date of birth, nationality, seat preference, and frequent-flyer number are not collected.  
+**Reason:** The brief does not specify a passenger schema beyond identity verification. Name, email, and document number are the minimum needed to identify a passenger and satisfy the document-type rule. Additional fields (DOB, nationality) would be required for real airline integration but are out of scope for this demo.
+
+---
+
+## NL search auto-fills the form; filled fields are highlighted
+
+**Assumption:** The natural-language search box calls `POST /api/ai/parse-search` and patches only the fields the parser returned a value for. Fields that were auto-filled are highlighted with a green border until the user submits a search.  
+**Reason:** Highlighting makes it immediately clear which fields were set by the AI and which still need manual input, reducing the risk of the user submitting an incomplete or wrong query without noticing.
